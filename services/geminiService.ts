@@ -48,7 +48,11 @@ const responseSchema: Schema = {
       },
       required: [EvaluationCategory.GEO, EvaluationCategory.AIO, EvaluationCategory.SEO],
     },
-    jsonLdSuggestion: { type: Type.OBJECT, description: "A suggested JSON-LD structure for the content" },
+    // Changed from OBJECT to STRING to allow arbitrary JSON structure without strict property definition errors
+    jsonLdSuggestion: { 
+      type: Type.STRING, 
+      description: "A serialized JSON string containing the suggested JSON-LD structure (e.g., Article, FAQPage) for the content." 
+    },
   },
   required: ["targetUrlOrTitle", "overallScore", "grade", "breakdown", "criticalIssues", "jsonLdSuggestion"],
 };
@@ -71,7 +75,8 @@ export const analyzeContent = async (content: string, title?: string): Promise<I
     1. Analyze the text rigorously. Be critical. High scores require explicit evidence.
     2. Calculate scores for GEO, AIO, and SEO based on the metrics defined.
     3. Provide actionable feedback.
-    4. Generate a valid JSON-LD structure (Article + FAQPage or ClaimReview) that would improve this content.
+    4. Generate a suggested JSON-LD structure (Article + FAQPage or ClaimReview) that would improve this content.
+       Return this as a valid JSON string in the 'jsonLdSuggestion' field.
     
     Input Title Context: ${title || "Untitled Content"}
   `;
@@ -97,7 +102,25 @@ export const analyzeContent = async (content: string, title?: string): Promise<I
     if (!text) {
         throw new Error("No response from Gemini");
     }
-    return JSON.parse(text) as IdvsReport;
+    
+    let result;
+    try {
+        result = JSON.parse(text);
+    } catch (e) {
+        throw new Error("Failed to parse AI response as JSON");
+    }
+
+    // Parse the inner JSON-LD string into an object
+    if (typeof result.jsonLdSuggestion === 'string') {
+        try {
+            result.jsonLdSuggestion = JSON.parse(result.jsonLdSuggestion);
+        } catch (e) {
+            console.warn("Failed to parse jsonLdSuggestion string", e);
+            result.jsonLdSuggestion = {}; 
+        }
+    }
+
+    return result as IdvsReport;
 
   } catch (error) {
     console.error("Analysis failed:", error);
