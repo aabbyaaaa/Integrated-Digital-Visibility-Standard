@@ -1,0 +1,5 @@
+{
+  "name": "IDVS 2025 Auditor",
+  "description": "An advanced content evaluation system based on the IDVS 2025 standard. It analyzes text for GEO (Generative Engine Optimization), AIO (Answer Engine Optimization), and SEO compliance using Google Gemini.",
+  "requestFramePermissions": []
+}
